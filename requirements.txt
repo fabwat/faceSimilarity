@@ -1,0 +1,3 @@
+opencv-python>=4.8
+dlib>=19
+pytesseract>=0.3
