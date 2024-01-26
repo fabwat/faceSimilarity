@@ -10,9 +10,6 @@
 
 1) Steps:
 
-- Install tesseract-ocr:
-  - >apt-get install tesseract-ocr
-
 - Install pip and virtual env
   ->python3 -m pip install --user --upgrade pip
   ->python3 -m pip install --user virtualenv
