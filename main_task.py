@@ -8,18 +8,21 @@ import faulthandler
 # -----------------TASK FACE    ----------------------------------------------------------------------------          
 def draw_faces(frame, cam_stream, dim,icon_size):
     list_faces=cam_stream.get_faces()   
-        
+
+    #size of the icons that will be printed on the screen    
     person_rect_size=6
     
     if( list_faces != None ):
         count=1
         # Display the results
        
+        # screen position where icons will be shown
         posx_1 = 1
         posx_2 = posx_1+icon_size
         posy_1=person_rect_size
         posy_2=icon_size+person_rect_size
         
+        #Check just the 4 faces detected in the camera
         for (left, top, right, bottom), list_names in list_faces:                              
             # Scale back up face locations since the frame we detected in was scaled to 1/4 size
             top *= 4
@@ -35,7 +38,7 @@ def draw_faces(frame, cam_stream, dim,icon_size):
             # Draw a label with a name below the face
             cv2.rectangle(frame, (left, bottom ), (right, bottom+14), color, cv2.FILLED)
             
-            # identifying each face as person1, person2, in order to associate to the image icon
+            # identifying each face as person1, person2, ... in order to associate to the image icon
             text_person="Person " + str(count)
             cv2.putText(frame, text_person, (left + int((right-left)/2)-28, bottom+10), font, 0.4, (255,255,255), 1)
             
@@ -43,11 +46,13 @@ def draw_faces(frame, cam_stream, dim,icon_size):
             #font = cv2.FONT_HERSHEY_PLAIN        
             posy_1_tmp = posy_1-person_rect_size     
            
-            # Draw the 5 most similar images with the percentual
+            # Draw the 3 most similar images with the percentual
             # Image icon related to person 1 will be drawn on the left side , second person will be drawn below person 1 icons
             # Third person will be drawn on the right side, and the fourth person below third.
             # In case of presence more than 4 person, theirs icons will not be drawn, otherwise the frame could be mixed with too much information.
             for name, perc, path in list_names:
+
+                # Print percentual of similarity, filename and similar face on the screen
                 text = str(perc) + "%" + ":" + name    
                 img= cv2.imread(path,cv2.IMREAD_UNCHANGED)
                 img_resized = cv2.resize(img,(icon_size,icon_size), interpolation=cv2.INTER_AREA)
@@ -73,17 +78,20 @@ def draw_faces(frame, cam_stream, dim,icon_size):
             
             # if left side is full, change to rigth.
             if ( posy_2 > dim[1]):
-                # check if its already drawn on right side
+
+                # check if screen is already full (just do this for 4 detect faces)
                 if posx_1 == int(dim[0]-icon_size-1):
                     break  
+
                 posx_1 = int(dim[0]-icon_size-1)
                 posx_2 = posx_1+icon_size
                 posy_1 = person_rect_size
                 posy_2 = icon_size+person_rect_size         
             
 
-def main_task():         
-    icon_size = 68
+def main_task():    
+    # Size of similar faces that will be plot on the screen.
+    icon_size = 68  
     cam= webcam(0)
     cam.start()
     
@@ -103,7 +111,7 @@ def main_task():
             frame = cam.get()                               
                                         
         # adding a delay for simulating video processing time 
-        delay = 0.03 # delay value in seconds
+        delay = 0.5 # delay value in seconds
                 
         # displaying frame                 
         draw_faces(frame, face_stream, cam.get_cam_dim(),icon_size)            

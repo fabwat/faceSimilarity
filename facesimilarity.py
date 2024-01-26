@@ -8,14 +8,8 @@ from pkg_resources import resource_filename
 import dlib
 import numpy as np
 
-# ---------- FACE SIMILARITY   -------------------------------------------------------------------
-
-# FaceRecognition static class
-class FaceRecognition:        
-    @staticmethod
-    def trim_bounds(bbox, image_shape):
-        return max(bbox[0], 0), max(bbox[1], 0), min(bbox[2], image_shape[1]), min(bbox[3], image_shape[0])
-
+class FaceExtractor:        
+    # array with location of face detected in "image"
     @staticmethod
     def face_locations(image, upsample=1):
         face_detector = dlib.get_frontal_face_detector()  # use HOG
@@ -24,23 +18,28 @@ class FaceRecognition:
 
         _ret = []
         for face in face_detector(image, upsample):
-            _ret.append(FaceRecognition.trim_bounds((face.left(), face.top(), face.right(), face.bottom()), image.shape))
-
+            _ret.append( (   max(face.left(), 0), 
+                            max(face.top(), 0), 
+                            min(face.right(), image.shape[1]), 
+                            min(face.bottom(), image.shape[0] ) ) )                
+            
         return _ret
 
+class FileLoader:
     @staticmethod
     def load_image(file, pixeltype=cv2.IMREAD_COLOR):
         _image = cv2.imread(file, pixeltype)
         return np.array(_image)
 
+
+class FaceEncoder:        
     @staticmethod
-    def face_encodings(image, locations=None, upsample=1, jitter=1):
+    def get_face_encodings(image, locations=None, upsample=1, jitter=1):
         # Generate the face encodings
         if locations is None:
-            face_detector = dlib.get_frontal_face_detector()  # use HOG
-            _raw_face_locations = face_detector(image, upsample)  # returns dlib *** RECT *** objects
-        else:
-            #  left: location[0], top: location[1], right: location[2], bottom: location[3]
+            face_detector = dlib.get_frontal_face_detector()  
+            _raw_face_locations = face_detector(image, upsample)  
+        else:            
             _raw_face_locations = [dlib.rectangle(location[0], location[1], location[2], location[3]) for location in locations]
 
         # small 5 points landmarks
@@ -56,17 +55,6 @@ class FaceRecognition:
         ret_ar= [np.array(face_encoder.compute_face_descriptor(image, raw_landmark, jitter))
                 for raw_landmark in _raw_landmarks]
         return ret_ar
-
-    @staticmethod
-    def encoding_distance(known_encodings, encoding_check):
-        if len(known_encodings) == 0:
-            return np.empty(0)
-
-        return np.linalg.norm(known_encodings - encoding_check, axis=1)
-
-    @staticmethod
-    def compare_encodings(known_encodings, encoding_check, tolerance=0.5):       
-        return list(FaceRecognition.encoding_distance(known_encodings, encoding_check) <= tolerance)  
     
     
 class FaceSimilarity():
@@ -83,17 +71,12 @@ class FaceSimilarity():
         self.stopped = False
         
         #read all images in images folder, that will be the known faces, and filename will be used as face name
-        path_pattern = [ (path+"/"+s) for s in pattern.split(",")]
-        
+        path_pattern = [ (path+"/"+s) for s in pattern.split(",")]        
         image_files= [s for s in self.multiple_file_types(  path_pattern )  ]
-        print(image_files)
-        self.face_img_path= [s for s in image_files]
-        
-        self.known_face_encodings = [ FaceRecognition.face_encodings(FaceRecognition.load_image(s))[0] for s in image_files]        
+        self.face_img_path= [s for s in image_files]       
+        self.known_face_encodings = [ FaceEncoder.get_face_encodings(FileLoader.load_image(s))[0] for s in image_files]        
         self.known_face_names = [ (os.path.splitext(os.path.basename(s))[0]).upper()  for s in image_files]        
        
-        for i in self.known_face_names:
-            print ( i)
            
     def start(self):      
         self.t_face.start()
@@ -122,17 +105,16 @@ class FaceSimilarity():
                 rgb_small_frame = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
                 
                 # Find all the faces and face encodings in the current frame of video
-                _face_locations = FaceRecognition.face_locations(rgb_small_frame)
+                _face_locations = FaceExtractor.face_locations(rgb_small_frame)
                 
                 if len(self.known_face_encodings) > 0:
                     
-                    _face_encodings = FaceRecognition.face_encodings(rgb_small_frame, locations=_face_locations)
+                    _face_encodings = FaceEncoder.get_face_encodings(rgb_small_frame, locations=_face_locations)
 
                     for face_encoding in _face_encodings:
                         # use the known face with the smallest distance to the new face
                         #face_distances = FaceRecognition.face_distance(self.known_face_encodings, face_encoding)
-                        face_distances = FaceRecognition.encoding_distance(known_encodings=self.known_face_encodings,
-                                            encoding_check=face_encoding)
+                        face_distances = np.linalg.norm(self.known_face_encodings - face_encoding, axis=1)
  
                         _name = "Unknown"
 

@@ -5,57 +5,60 @@ import cv2
 class WebcamStream :
     # initialization method 
     def __init__(self, stream_id=0):
-        self.stream_id = stream_id # default is 0 for main camera 
+        self.stream_id = stream_id  # default id is 0
         
         # opening video capture stream 
         self.vcap      = cv2.VideoCapture(self.stream_id)
-        if self.vcap.isOpened() is False :            
+        if self.vcap.isOpened() is False :    
+            print('[Exiting] Error openning the camera')        
             exit(0)
-        fps_input_stream = int(self.vcap.get(5)) # hardware fps
-        print("FPS of input stream: {}".format(fps_input_stream))
-        self.ocr_txt=""
         
+        self.ocr_txt=""        
         self.cam_width  = self.vcap.get(3)  # float `width`
         self.cam_height = self.vcap.get(4)  # float `height`       
             
-        # reading a single frame from vcap stream for initializing 
+        # Checking frame from vcap stream
         self.grabbed , self.frame = self.vcap.read()
         if self.grabbed is False :
             print('[Exiting] No more frames to read')
             exit(0)
-        # self.stopped is initialized to False 
+
+        # Flag for stop thread 
         self.stopped = True
+
         # thread instantiation  
         self.t_cam = Thread(target=self.update, args=())
         self.t_cam.daemon = True # daemon threads run in background 
         
-    # method to start thread 
+    # Start thread 
     def start(self):
         self.stopped = False
         self.t_cam.start()
-    
+
+    # Camera frame dimension
     def get_cam_dim(self):
         return (self.cam_width,self.cam_height)    
         
-    # method passed to thread to read next available frame  
+    # Read next available frame  
     def update(self):
         while True :
             if self.stopped is True :
                 break
-            self.grabbed , self.frame = self.vcap.read()
-         
-            #print(pytesseract.image_to_string(self.frame))
+
+            self.grabbed , self.frame = self.vcap.read()         
+            
             if self.grabbed is False :
                 print('[Exiting] No more frames to read')
                 self.stopped = True
                 break 
-            
+
+        #Stopping thread    
         self.vcap.release()        
            
     # method to return latest read frame 
     def get(self):
         return self.frame
     
-    # method to stop reading frames 
+    # Signaling to stop thread
     def stop(self):
         self.stopped = True

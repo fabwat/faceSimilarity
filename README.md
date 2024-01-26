@@ -1,9 +1,11 @@
 # Face similarity
 ## It detects the faces at camera and calculates the percentual similarity with some known faces.
 
-  This program detects faces in the video, and calculates the similarity with the faces located at folder images.  
-  It shows the 3 highest percentual similarity images in the left/right of screen.  
-  Each face in the video is denominated as person 1-4.
+    This program detects faces in the video, and calculates the similarity with the faces located 
+  at folder images.  
+    It shows the 3 highest similarity faces in the corners of the screen.  
+    Each face detected in the is denominated as person 1-4 and the similarity faces will be 
+  showed in a vertical list .
 
 
 1) Steps:
